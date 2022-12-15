@@ -1,0 +1,108 @@
+# Import necessary modules
+import sqlite3
+import random
+
+# Connect to the database
+conn = sqlite3.connect('elearning.db')
+cursor = conn.cursor()
+
+# Create tables for courses and students
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS courses (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL,
+        teacher TEXT NOT NULL
+    )
+''')
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS students (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        courses TEXT NOT NULL
+    )
+''')
+
+# Function to add a course
+def add_course(name, description, teacher):
+    cursor.execute('''
+        INSERT INTO courses (name, description, teacher)
+        VALUES (?, ?, ?)
+    ''', (name, description, teacher))
+    conn.commit()
+    print("Course added successfully.")
+
+# Function to add a student
+def add_student(name, courses):
+    cursor.execute('''
+        INSERT INTO students (name, courses)
+        VALUES (?, ?)
+    ''', (name, courses))
+    conn.commit()
+    print("Student added successfully.")
+
+# Function to generate a random enrollment ID for a student
+def generate_enrollment_id():
+    enrollment_id = ''.join(random.choices('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', k=8))
+    return enrollment_id
+
+# Function to enroll a student in a course
+def enroll(student_id, course_id):
+    # Check if the course and student exist
+    cursor.execute('''
+        SELECT * FROM courses WHERE id=?
+    ''', (course_id,))
+    course = cursor.fetchone()
+    if course is None:
+        print("Error: Course not found.")
+        return
+    cursor.execute('''
+        SELECT * FROM students WHERE id=?
+    ''', (student_id,))
+    student = cursor.fetchone()
+    if student is None:
+        print("Error: Student not found.")
+        return
+
+    # Generate an enrollment ID for the student
+    enrollment_id = generate_enrollment_id()
+
+    # Enroll the student in the course
+    cursor.execute('''
+        UPDATE students
+        SET courses=?
+        WHERE id=?
+    ''', (enrollment_id + "," + course[1], student_id))
+    conn.commit()
+    print("Student enrolled in course successfully.")
+
+# Add some sample courses and students
+add_course("Introduction to Computer Science", "A course on the basics of computer science", "John Doe")
+add_course("Introduction to Mathematics", "A course on the basics of mathematics", "Jane Doe")
+add_student("John Smith", "")
+add_student("Jane Smith", "")
+
+# Enroll a student in a course
+enroll(1, 1)
+enroll(2, 2)
+
+# Print the courses and students
+cursor.execute('''
+    SELECT * FROM courses
+''')
+courses = cursor.fetchall()
+print("Courses:")
+for course in courses:
+    print("ID: {}, Name: {}, Description: {}, Teacher: {}".format(course[0], course[1], course[2], course[3]))
+
+cursor.execute('''
+    SELECT * FROM students
+''')
+students = cursor.fetchall()
+print("Students:")
+for student in students:
+    print("ID: {}, Name: {}, Courses: {}".format(student[0], student[1], student[2]))
+
+# Close the database connection
+conn.close()
